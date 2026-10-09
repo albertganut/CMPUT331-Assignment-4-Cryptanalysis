@@ -4,7 +4,7 @@
 #
 # CMPUT 331 Student Submission License
 # Version 1.0
-# Copyright <<Insert the date here>> <<Insert your name here>>
+# Copyright October 8, 2026 Albert Ganut
 #
 # Redistribution is forbidden in all circumstances. Use of this software
 # without explicit authorization from the author is prohibited.
@@ -33,7 +33,7 @@
 #-------------------- START ASSIGNMENT HERE ---------------------
 """
 General decryption program
-Author: <<Insert your name here>>
+Author: Albert Ganut
 """
 
 from detectEnglish import isEnglish

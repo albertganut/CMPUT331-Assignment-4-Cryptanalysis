@@ -49,7 +49,7 @@ def hack_caesar(ciphertext):
 
         decrypted = decrypt_caesar(ciphertext, key)
         
-        if isEnglish(decrypted, wordPercentage=50, letterPercentage=70): 
+        if isEnglish(decrypted): 
             return decrypted
 
     return None # returns None if no valid decryption is found  
@@ -61,7 +61,7 @@ def hack_transposition(ciphertext):
         for key_permutation in permutations(range(1, len_key + 1)): # generates all possible permutations of the key of those col numbers
             decrypted = decrypt_transposition(list(key_permutation), ciphertext) # converts the tuple of different key permutations into a list to be used in the decryption function()
 
-            if isEnglish(decrypted, wordPercentage=50, letterPercentage=70):
+            if isEnglish(decrypted):
                 return decrypted 
 
     return None # returns None if no valid decryption is found
@@ -98,7 +98,7 @@ def hack_affine(ciphertext):
                 else: # if the char isn't a letter, then we just add it to the decrypted message as is
                     decrypted += char
 
-            if isEnglish(decrypted, wordPercentage=50, letterPercentage=70):
+            if isEnglish(decrypted):
                 return decrypted
 
     return None

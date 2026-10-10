@@ -38,6 +38,70 @@ Author: Albert Ganut
 
 from detectEnglish import isEnglish
 from itertools import permutations
+from cryptomath import gcd, findModInverse
+from a1p1 import decrypt as decrypt_caesar
+from a2p3 import decipherMessage as decrypt_transposition
+from string import ascii_uppercase as uppercase_alpha_letters # ABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+def hack_caesar(ciphertext):
+
+    for key in uppercase_alpha_letters:  # uses brute force to try all letters in the English alphabet as keys
+
+        decrypted = decrypt_caesar(ciphertext, key)
+        
+        if isEnglish(decrypted, wordPercentage=50, letterPercentage=70): 
+            return decrypted
+
+    return None # returns None if no valid decryption is found  
+
+def hack_transposition(ciphertext):
+
+    for len_key in range(1, 10): # tests all key lengths of 1 col up to 9 cols
+
+        for key_permutation in permutations(range(1, len_key + 1)): # generates all possible permutations of the key of those col numbers
+            decrypted = decrypt_transposition(list(key_permutation), ciphertext) # converts the tuple of different key permutations into a list to be used in the decryption function()
+
+            if isEnglish(decrypted, wordPercentage=50, letterPercentage=70):
+                return decrypted 
+
+    return None # returns None if no valid decryption is found
+
+def hack_affine(ciphertext):
+
+    modulus = len(uppercase_alpha_letters) 
+
+    for key_multiplier in range(1, modulus): # tests all possible key multipliers from 1 to 25 
+
+        # if the gcd of the key multiplier and the modulus isn't 1 then then a mod inverse doesn't exist and the rest of the code is skipped for that key multiplier. It goes to the next iteration
+        if gcd(key_multiplier, modulus) != 1:
+            continue
+
+        mod_inverse = findModInverse(key_multiplier, modulus)  
+
+        for key_shift in range(modulus): # tests all possible key shifts from 0 to 25
+
+            decrypted = "" # this will store the decrypted message later
+
+            for char in ciphertext:
+
+                if char.upper() in uppercase_alpha_letters:
+                    letter_index = uppercase_alpha_letters.index(char.upper()) # gets the index of the letter 
+                    decrypted_index = (mod_inverse * (letter_index - key_shift)) % modulus # gets the index of the decrypted letter using the affine decryption formula
+                    decrypted_letter = uppercase_alpha_letters[decrypted_index] # gets the actual letter from the decrypted index
+
+                    # if the original letter from the ciphertext was lowercase, then the decrypted letter is also converted to lowercase. Otherwise, we keep and add it as an uppercase letter
+                    if char.islower(): 
+                        decrypted += decrypted_letter.lower()
+                    else:
+                        decrypted += decrypted_letter
+
+                else: # if the char isn't a letter, then we just add it to the decrypted message as is
+                    decrypted += char
+
+            if isEnglish(decrypted, wordPercentage=50, letterPercentage=70):
+                return decrypted
+
+    return None
 
 def hack(ciphertype: str, ciphertext: str):
     """
@@ -45,11 +109,42 @@ def hack(ciphertype: str, ciphertext: str):
         Input: a line from `ciphers.txt`.
         Output: the decrypted message (or plaintext).
     """
-    raise NotImplementedError()
+
+    if ciphertype == "C":
+        result = hack_caesar(ciphertext)
+
+    elif ciphertype == "T":
+        result = hack_transposition(ciphertext)
+
+    elif ciphertype == "A":
+        result = hack_affine(ciphertext)
+
+    else:
+        result = None
+
+    if result:
+        return result
+    
+    else:
+        return ciphertext  # return the original ciphertext if no decryption was successful
 
 def processing():
-    # Add the processing steps here like reading form ciphers.txt, calling the hack function, writing to decrypted.txt, etc.
-    raise NotImplementedError()
+
+    with open("ciphers.txt", "r") as file:
+        lines = file.readlines()
+
+        plaintexts = []
+
+        for line in lines:
+
+            ciphertype, ciphertext = line.rstrip('\r\n').split(";", 1)  # split the line into cipher type and ciphertext
+            plaintext = hack(ciphertype, ciphertext)  # decrypt the ciphertext using the appropriate hack function
+            plaintexts.append(plaintext)  # add the decrypted plaintext to the list
+
+    with open("decrypted.txt", "w") as file:
+        for plaintext in plaintexts:
+
+            file.write(plaintext + "\n")  # write each decrypted plaintext to the output file
 
 def test():
     # Test cases for the hack function. You can add more tests as needed.
@@ -60,3 +155,4 @@ def test():
 
 if __name__ == '__main__':
     test()
+    processing()

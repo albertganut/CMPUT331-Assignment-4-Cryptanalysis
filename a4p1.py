@@ -138,6 +138,10 @@ def processing():
         for line in lines:
 
             ciphertype, ciphertext = line.rstrip('\r\n').split(";", 1)  # split the line into cipher type and ciphertext
+
+            if ciphertext.startswith(" "):
+                ciphertext = ciphertext[1:]  # removes the formatting space after the semicolon if it exists
+                
             plaintext = hack(ciphertype, ciphertext)  # decrypt the ciphertext using the appropriate hack function
             plaintexts.append(plaintext)  # add the decrypted plaintext to the list
 

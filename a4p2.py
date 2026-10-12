@@ -35,6 +35,9 @@ Nomenclator cipher
 Author: Albert Ganut
 """
 
+import re
+import random
+
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
@@ -46,7 +49,91 @@ def translateMessage(key: str, message: str, codebook: dict, mode: str):
     specifying the action to be taken. Returns a string containing the
     ciphertext (if encrypting) or plaintext (if decrypting).
     """
-    raise NotImplementedError()
+
+    # checks if the mode we're trying is valid
+    if mode not in ["encrypt", "decrypt"]:
+        raise ValueError(f"Invalid mode: {mode}. Must be 'encrypt' or 'decrypt'.")
+
+    # two dictionaries to map words to symbols and symbols to words 
+    word_to_symbols = {}
+    symbols_to_word = {}
+
+    for word in codebook:
+
+        word_to_symbols[word.lower()] = codebook[word]
+
+        for symbol in codebook[word]:
+
+            symbols_to_word[str(symbol)] = word
+
+    source = LETTERS
+    target = key.upper()
+
+    if mode == "decrypt":
+        source, target = key.upper(), LETTERS
+
+    translated = []
+
+    # splits the message while keeping the whitespace so spaces, tabs, and newlines aren't changed
+    parts = re.split(r"(\s+)", message)
+
+    for part in parts:
+
+        if part == "" or part.isspace():
+            translated.append(part)
+            continue
+
+        start = 0
+        end = len(part)
+
+        while start < end and not part[start].isalnum():
+
+            start += 1
+
+        while end > start and not part[end - 1].isalnum():
+
+            end -= 1
+
+        # dividing the word into three parts
+        actual_word = part[start:end].lower()
+        prefix = part[:start]
+        suffix = part[end:]
+
+        replace = None
+
+        if mode == "encrypt":
+            if actual_word in word_to_symbols:
+                symbols = word_to_symbols[actual_word]
+                replace = str(random.choice(symbols))
+        else:
+            if actual_word in symbols_to_word:
+                replace = symbols_to_word[actual_word]
+
+        if replace is not None:
+            translated.append(prefix + replace + suffix)
+            continue
+
+        simple_sub_letters = []
+
+        for char in part:
+
+            upper_char = char.upper()
+
+            if upper_char in source:
+                index = source.index(upper_char)
+                new_char = target[index]
+
+                if char.islower():
+                    new_char = new_char.lower()
+
+                simple_sub_letters.append(new_char)
+            else:
+
+                simple_sub_letters.append(char)
+
+        translated.append(''.join(simple_sub_letters))
+
+    return ''.join(translated)
 
 
 def encryptMessage(key: str, message: str, codebook: dict):

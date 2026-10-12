@@ -11,7 +11,7 @@
 #
 # This software was produced as a solution for an assignment in the course
 # CMPUT 331 - Computational Cryptography at the University of
-# Alberta, Canada. This solution is confidential and remains confidential 
+# Alberta, Canada. This solution is confidential and remains confidential
 # after it is submitted for grading.
 #
 # Copying any part of this solution without including this copyright notice
@@ -22,7 +22,7 @@
 # the sanctions for plagiarism at that institution.
 #
 # If this software is found in any public website or public repository, the
-# person finding it is kindly requested to immediately report, including 
+# person finding it is kindly requested to immediately report, including
 # the URL or other repository locating information, to the following email
 # address:
 #
@@ -50,90 +50,103 @@ def translateMessage(key: str, message: str, codebook: dict, mode: str):
     ciphertext (if encrypting) or plaintext (if decrypting).
     """
 
-    # checks if the mode we're trying is valid
+    # checks if the mode is valid
     if mode not in ["encrypt", "decrypt"]:
         raise ValueError(f"Invalid mode: {mode}. Must be 'encrypt' or 'decrypt'.")
 
-    # two dictionaries to map words to symbols and symbols to words 
-    word_to_symbols = {}
-    symbols_to_word = {}
+    # when encrypting, it uses the normal alphabet as the source and the key as the target
+    source_alpha, target_alpha = LETTERS, key.upper()
 
-    for word in codebook:
-
-        word_to_symbols[word.lower()] = codebook[word]
-
-        for symbol in codebook[word]:
-
-            symbols_to_word[str(symbol)] = word
-
-    source = LETTERS
-    target = key.upper()
-
+    # if we're decrypting, it uses the key as the source and the normal alphabet as the target
     if mode == "decrypt":
-        source, target = key.upper(), LETTERS
+        source_alpha, target_alpha = key.upper(), LETTERS
 
-    translated = []
+    translated_parts = [] # this will hold pieces of encrypted/decrypyted text, as well as any unchanged characters
 
-    # splits the message while keeping the whitespace so spaces, tabs, and newlines aren't changed
-    parts = re.split(r"(\s+)", message)
+    # splits the message while keeping spaces, tabs, and newlines.
+    # r"" preserves the backlash, \s matches whitespace characters, + matches one or more of the preceding thing
+    message_parts = re.split(r"(\s+)", message) 
 
-    for part in parts:
+    for part in message_parts: # goes through the message we just split
 
+        # checks if "part" is an empty string or a string that's only whitespace
+        # If it is then it appends it to the translated list and continues to the next iteration of the loop
         if part == "" or part.isspace():
-            translated.append(part)
+            translated_parts.append(part)
             continue
 
-        start = 0
-        end = len(part)
+        # we define the start and end of the word in "part" so that we can separate the actual word from any surrounding punctuation or whitespace 
+        word_start = 0
+        word_end = len(part)
 
-        while start < end and not part[start].isalnum():
+       # this runs while there are still characters in the string to check and the character at the start index isn't a letter or number (so if it's punctuation or whitespace) 
+        while word_start < word_end and not part[word_start].isalnum():
+            word_start += 1 # goes to the next character if the current character isn't a letter or number
 
-            start += 1
+        # this runs while there are still characters in the string to check and the character before the end isn't a letter or number)
+        while word_end > word_start and not part[word_end - 1].isalnum():
+            word_end -= 1 # continues left until it finds a letter or number, then stops. This is the end of the actual word in "part"
 
-        while end > start and not part[end - 1].isalnum():
+        # separate the content from its surrounding characters.
+        actual_word = part[word_start:word_end].lower() # gets all the characters for the actual word in "part" and converts it to lowercase to match with codebook
+        prefix = part[:word_start] # gets everything before the actual word in "part"
+        suffix = part[word_end:] # gets everything after the actual word in "part"
 
-            end -= 1
-
-        # dividing the word into three parts
-        actual_word = part[start:end].lower()
-        prefix = part[:start]
-        suffix = part[end:]
-
-        replace = None
+        codebook_replacement = None # used to track if a replacement has been found for the actual word in "part"
 
         if mode == "encrypt":
-            if actual_word in word_to_symbols:
-                symbols = word_to_symbols[actual_word]
-                replace = str(random.choice(symbols))
-        else:
-            if actual_word in symbols_to_word:
-                replace = symbols_to_word[actual_word]
 
-        if replace is not None:
-            translated.append(prefix + replace + suffix)
+            for word in codebook:
+
+                # if we find a match for the actual word in the codebook, we randomly choose one of its symbols to replace it with
+                if actual_word == word.lower():
+                    symbols = codebook[word]
+                    codebook_replacement = str(random.choice(symbols))
+                    break # stops searching because we found a match and don't need to check the rest of the codebook
+
+        else: # this runs if we're decrypting
+
+            for word in codebook:
+
+                for symbol in codebook[word]: # looks at all the symbols associated with the current word
+
+                    # if the message matches a symbol in the codebook, we replace it with the corresponding word
+                    if actual_word == str(symbol):
+                        codebook_replacement = word
+                        break
+
+                # if we found a replacement then we can stop looking
+                if codebook_replacement is not None:
+                    break
+
+        # if we found a replacement in the codebook, we add it to the translated parts list with its surrounding characters and continue to the next iteration of the loop
+        if codebook_replacement is not None:
+            translated_parts.append(prefix + codebook_replacement + suffix) # for example --> '"' + 'Albert' + '!"'
             continue
 
-        simple_sub_letters = []
+        substituted_characters = [] # this will hold the current piece's processed characters
 
-        for char in part:
+        for char in part: # goes through al the characters in the original piece
 
             upper_char = char.upper()
 
-            if upper_char in source:
-                index = source.index(upper_char)
-                new_char = target[index]
+            # if the character is in the source alphabet, we find its index and get the corresponding character from the target alphabet
+            if upper_char in source_alpha:
+                index = source_alpha.index(upper_char)
+                new_char = target_alpha[index]
 
+                # to preserve the original case of the chracter (like if it was lowercase or uppercase)
                 if char.islower():
                     new_char = new_char.lower()
 
-                simple_sub_letters.append(new_char)
-            else:
+                substituted_characters.append(new_char)
 
-                simple_sub_letters.append(char)
+            else: # if the character isn't in the source alphabet, we just add it to the substituted characters list as is
+                substituted_characters.append(char)
 
-        translated.append(''.join(simple_sub_letters))
+        translated_parts.append("".join(substituted_characters))
 
-    return ''.join(translated)
+    return "".join(translated_parts)
 
 
 def encryptMessage(key: str, message: str, codebook: dict):

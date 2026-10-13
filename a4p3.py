@@ -37,28 +37,9 @@ Author: Albert Ganut
 
 import re
 import simpleSubHacker as ssh
+from detectEnglish import loadDictionary
 
 LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-
-def load_dict():
-
-    dictionary_words = []
-
-    with open("dictionary.txt", "r") as file:
-        for line in file:
-
-            word = line.strip().upper() 
-
-            # checks if the word is empty and only has uppercase letters, if not it skips the word
-            # [A-Z] means that the word can only have those letters (uppercase)
-            # the "+" at the end means that there can be one or more of those symbols inside the brackets
-            if re.fullmatch("[A-Z]+", word) is None: 
-
-                continue
-
-            dictionary_words.append(word)
-
-    return dictionary_words
 
 
 def is_word_valid(cipherword, candidate, letter_mapping):
@@ -129,7 +110,7 @@ def hackSimpleSub(message: str):
     Then uses regular expressions and a dictionary to decipher additional letters.
     """
 
-    dictionary_words = load_dict()
+    dictionary_words = loadDictionary()
     letter_mapping = ssh.hackSimpleSub(message)
     cipherwords = re.findall("[A-Z]+", message.upper())
     unique_cipherwords = []

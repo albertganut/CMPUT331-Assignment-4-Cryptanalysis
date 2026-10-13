@@ -47,9 +47,13 @@ def load_dict():
     with open("dictionary.txt", "r") as file:
         for line in file:
 
-            word = line.strip().upper()
+            word = line.strip().upper() 
 
-            if re.fullmatch('[A-Z]+', word) is None:
+            # checks if the word is empty and only has uppercase letters, if not it skips the word
+            # [A-Z] means that the word can only have those letters (uppercase)
+            # the "+" at the end means that there can be one or more of those symbols inside the brackets
+            if re.fullmatch("[A-Z]+", word) is None: 
+
                 continue
 
             dictionary_words.append(word)
@@ -59,49 +63,61 @@ def load_dict():
 
 def is_word_valid(cipherword, candidate, letter_mapping):
 
-    cipherword = cipherword.upper()
-    candidate = candidate.upper()
+    cipherword = cipherword.upper() # this is the encrypted word that we're checking
+    candidate = candidate.upper() # this is a dictionary word that might be its plaintext
 
-    cipher_to_plaintext = {}
+    cipher_to_plaintext = {} # this will hold the letter pairs that are already solved during the check --> this dict will not change letter_mappings
 
     for cipher_letter in LETTERS:
 
         possible_letters = letter_mapping[cipher_letter]
 
+        # checks if the letter has only one possible mapping, if so it adds it to the cipher_to_plaintext dict
         if len(possible_letters) == 1:
-            plaintext_letter = possible_letters[0]
+            plaintext_letter = possible_letters[0] # gets the only item in the list in pos 0 --> this is then a solved plaintext letter
 
+            # checks if the plaintext letter is already in the cipher_to_plaintext dict, if so it returns False because that means that two different cipher letters are 
+            # mapping to the same plaintext letter --> rejects the candidate word
             if plaintext_letter in cipher_to_plaintext.values():
+
                 return False
 
-            cipher_to_plaintext[cipher_letter] = plaintext_letter
+            cipher_to_plaintext[cipher_letter] = plaintext_letter # adds the solved pair into the temp dict
 
     for index in range(len(cipherword)):
 
+        # getting the letters at the current index of the cipherword and candidate word
         ciphertext_letter = cipherword[index]
         plaintext_letter = candidate[index]
 
         possible_letters = letter_mapping[ciphertext_letter]
 
+        # checks if there are known possioble letters
+        # rejects the candidate if its plaintext letter is not one of them
         if len(possible_letters) > 0:
             if plaintext_letter not in possible_letters:
-                return False
 
+                return False
+        # checks if the current ciphertext has already been assigned in the temp dict
+        # if the current assignment is different than the one in the temp dict, it rejects the candidate
         if ciphertext_letter in cipher_to_plaintext:
             if cipher_to_plaintext[ciphertext_letter] != plaintext_letter:
+
                 return False
+
 
         for current_ciphertext_letter in cipher_to_plaintext:
 
-            existing_plaintext_letter = (
-                cipher_to_plaintext[current_ciphertext_letter]
-            )
+            existing_plaintext_letter = (cipher_to_plaintext[current_ciphertext_letter]) # gets the plaintext letter assignmented to each key
 
+            # checks if the existing pair already uses the proposed plaintext letter
+            # if not, it rejects the candidate because that means that two different cipher letters are mapping to the same plaintext letter
             if existing_plaintext_letter == plaintext_letter:
                 if current_ciphertext_letter != ciphertext_letter:
+
                     return False
 
-        cipher_to_plaintext[ciphertext_letter] = plaintext_letter
+        cipher_to_plaintext[ciphertext_letter] = plaintext_letter # if everything passes then it gets added as a valid pair to the temp dict
 
     return True
 
@@ -115,7 +131,7 @@ def hackSimpleSub(message: str):
 
     dictionary_words = load_dict()
     letter_mapping = ssh.hackSimpleSub(message)
-    cipherwords = re.findall('[A-Z]+', message.upper())
+    cipherwords = re.findall("[A-Z]+", message.upper())
     unique_cipherwords = []
 
     for cipherword in cipherwords:
@@ -132,12 +148,15 @@ def hackSimpleSub(message: str):
 
                 if len(letter_mapping[ciphertext_letter]) != 1:
                     decryption_complete = False
+
                     break
 
             if not decryption_complete:
+
                 break
 
         if decryption_complete:
+
             return ssh.decryptWithCipherletterMapping(
                 message,
                 letter_mapping
@@ -174,6 +193,7 @@ def hackSimpleSub(message: str):
                     has_undeciphered_letter = True
 
             if not has_undeciphered_letter:
+
                 continue
 
             word_pattern = re.compile("".join(pattern_parts))
@@ -182,20 +202,24 @@ def hackSimpleSub(message: str):
             for candidate in dictionary_words:
 
                 if len(candidate) != len(cipherword):
+
                     continue
 
                 if word_pattern.fullmatch(candidate) is None:
+
                     continue
 
                 if is_word_valid(cipherword, candidate, letter_mapping):
                     valid_candidates.append(candidate)
 
             if len(valid_candidates) == 0:
+
                 continue
 
             candidate_mapping = ssh.getBlankCipherletterMapping()
 
             for candidate in valid_candidates:
+
                 ssh.addLettersToMapping(
                     candidate_mapping,
                     cipherword,
@@ -227,6 +251,7 @@ def hackSimpleSub(message: str):
             )
 
         if letter_mapping == previous_mapping:
+
             raise ValueError("Stopped before decryption was complete.")
 
 def test():

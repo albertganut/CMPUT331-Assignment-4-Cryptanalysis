@@ -44,13 +44,14 @@ LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 def is_word_valid(cipherword, candidate, letter_mapping):
     """
-    this function checks if the candidate word is a valid plaintext for the given cipherword based on the current letter mapping
+    this function checks if the candidate word can decrypt the cipherword without breaking the current letter mapping or 
+creating any conflicting letter assignments. It returns True if the candidate is valid and False if it is not.
     """
 
     cipherword = cipherword.upper() # this is the encrypted word that we're checking
     candidate = candidate.upper() # this is a dictionary word that might be its plaintext
 
-    cipher_to_plaintext = {} # this will hold the letter pairs that are already solved during the check --> this dict will not change letter_mappings
+    cipher_to_plaintext = {} # temporarily stores already-solved letter pairs and proposed pairs from this candidate --> this does not change letter_mapping.
 
     for cipher_letter in LETTERS:
 
@@ -82,7 +83,7 @@ def is_word_valid(cipherword, candidate, letter_mapping):
             if plaintext_letter not in possible_letters:
 
                 return False
-        # checks if the current ciphertext has already been assigned in the temp dict
+        # checks if the current ciphertext letter has already been assigned in the temp dict
         # if the current assignment is different than the one in the temp dict, it rejects the candidate
         if ciphertext_letter in cipher_to_plaintext:
             if cipher_to_plaintext[ciphertext_letter] != plaintext_letter:
@@ -92,10 +93,10 @@ def is_word_valid(cipherword, candidate, letter_mapping):
 
         for current_ciphertext_letter in cipher_to_plaintext:
 
-            existing_plaintext_letter = (cipher_to_plaintext[current_ciphertext_letter]) # gets the plaintext letter assignmented to each key
+            existing_plaintext_letter = (cipher_to_plaintext[current_ciphertext_letter]) # gets the plaintext letter assigned to each key
 
-            # checks if the existing pair already uses the proposed plaintext letter
-            # if not, it rejects the candidate because that means that two different cipher letters are mapping to the same plaintext letter
+            # checks if a different ciphertext letter already uses this plaintext letter.
+            # if so, it rejects the candidate because two different ciphertext letters cannot map to the same plaintext letter.
             if existing_plaintext_letter == plaintext_letter:
                 if current_ciphertext_letter != ciphertext_letter:
 
@@ -113,9 +114,9 @@ def hackSimpleSub(message: str):
     Then uses regular expressions and a dictionary to decipher additional letters.
     """
 
-    dictionary_words = loadDictionary() # using the loadDictionary function from detectEnglish.py to get a list of words from the dictionary
+    dictionary_words = loadDictionary() # using the loadDictionary function from detectEnglish.py to get a dictionary of words, with each word stored as a dictionary key
     letter_mapping = ssh.hackSimpleSub(message) # this gets the initial letter mapping from the simpleSubHacker.py 
-    cipherwords = re.findall("[A-Z]+", message.upper()) # gets letters from the message and converts them to uppercase
+    cipherwords = re.findall("[A-Z]+", message.upper()) # converts the message to uppercase and gets groups of A–Z letters
 
     unique_cipherwords = [] # this will hold the unique cipherwords from the message
 
@@ -133,14 +134,14 @@ def hackSimpleSub(message: str):
 
             for ciphertext_letter in cipherword:
 
-                # checks if the current letter has more than one possible mapping (one mapping means deciphered)
-                # if so, it means the letter is not yet fully deciphered
+                # chhecks if the current ciphertext letter does not have exactly one possible plaintext letter
+                # if so, it means the letter is not fully deciphered
                 if len(letter_mapping[ciphertext_letter]) != 1:
                     decryption_complete = False
 
                     break
 
-            # if empty then it means that the letter has no possible mapping and is also not fully deciphered
+            # if an unsolved letter was found, stops checking the remaining words
             if not decryption_complete:
 
                 break
@@ -150,11 +151,11 @@ def hackSimpleSub(message: str):
 
             return ssh.decryptWithCipherletterMapping(message,letter_mapping)
 
-        previous_mapping = {} # this will hold the previous letter mapping to check if the letter mapping has changed after each iterations
+        previous_mapping = {} # this will hold the previous letter mapping to check if the letter mapping has changed after each iteration
 
         for ciphertext_letter in LETTERS:
             
-            previous_mapping[ciphertext_letter] = (letter_mapping[ciphertext_letter].copy()) # this copies all the possibilities list for each letter into the previous mapping dict
+            previous_mapping[ciphertext_letter] = (letter_mapping[ciphertext_letter].copy()) # copies this letter's list of possible plaintext letters into previous_mapping
 
         for cipherword in unique_cipherwords:
 
@@ -173,19 +174,19 @@ def hackSimpleSub(message: str):
 
                 # if there are multiple possible letters, it means the ciphertext letter has not been fully deciphered
                 # combines the possible letters into a pattern for the regex to use
-                # Ex: possible_letters = ["A", "B"] --> pattern_parts = ["[AB]"]
+                # Ex: possible_letters = ["A", "B"] adds "[AB]" to pattern_parts
                 elif len(possible_letters) > 1:
                     pattern_parts.append("[" + "".join(possible_letters) + "]")
                     has_undeciphered_letter = True
 
-                # if there are no possible letters, it means the ciphertext letter has not been fully deciphered
-                # makes a regex pattern that allows any letter to be matched for the current ciphertext letter
+                # if no possible letters are known, the ciphertext letter is still unsolved
+                # makes a regex pattern that allows any uppercase A–Z letter at this position
                 else:
                     pattern_parts.append("[A-Z]")
                     has_undeciphered_letter = True
 
             # if the current cipherword has no undeciphered letters, it means that it has been fully deciphered and we just stop right here and
-            # move on to the next cipherwords
+            # move on to the next cipherword
             if not has_undeciphered_letter:
 
                 continue
@@ -201,7 +202,7 @@ def hackSimpleSub(message: str):
 
                     continue
 
-                # if the current candidate word is valid based on the current letter mapping (if there's only one possible letter for each ciphertext letter), then it adds it to the valid_candidates list
+                # if the candidate follows the current letter mapping and has no conflicting letter assignments, then it adds the candidate to the valid_candidates list
                 if is_word_valid(cipherword, candidate, letter_mapping):
                     valid_candidates.append(candidate)
 

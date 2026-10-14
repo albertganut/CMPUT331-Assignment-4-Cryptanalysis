@@ -63,6 +63,7 @@ def translateMessage(key: str, message: str, codebook: dict, mode: str):
 
     translated_parts = [] # this will hold pieces of encrypted/decrypyted text, as well as any unchanged characters
 
+    # used Gemini for line 69
     # splits the message while keeping spaces, tabs, and newlines.
     # r"" preserves the backlash, \s matches whitespace characters, + matches one or more of the preceding thing
     message_parts = re.split(r"(\s+)", message) 
@@ -79,6 +80,7 @@ def translateMessage(key: str, message: str, codebook: dict, mode: str):
         word_start = 0
         word_end = len(part)
 
+       # used Gemini for lines 85-90
        # this runs while there are still characters in the string to check and the character at the start index isn't a letter or number (so if it's punctuation or whitespace) 
         while word_start < word_end and not part[word_start].isalnum():
             word_start += 1 # goes to the next character if the current character isn't a letter or number

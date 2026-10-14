@@ -93,7 +93,7 @@ creating any conflicting letter assignments. It returns True if the candidate is
 
         for current_ciphertext_letter in cipher_to_plaintext:
 
-            existing_plaintext_letter = (cipher_to_plaintext[current_ciphertext_letter]) # gets the plaintext letter assigned to each key
+            existing_plaintext_letter = cipher_to_plaintext[current_ciphertext_letter] # gets the plaintext letter assigned to each key
 
             # checks if a different ciphertext letter already uses this plaintext letter.
             # if so, it rejects the candidate because two different ciphertext letters cannot map to the same plaintext letter.
@@ -116,6 +116,8 @@ def hackSimpleSub(message: str):
 
     dictionary_words = loadDictionary() # using the loadDictionary function from detectEnglish.py to get a dictionary of words, with each word stored as a dictionary key
     letter_mapping = ssh.hackSimpleSub(message) # this gets the initial letter mapping from the simpleSubHacker.py 
+    
+    # used Gemini on line 121
     cipherwords = re.findall("[A-Z]+", message.upper()) # converts the message to uppercase and gets groups of A–Z letters
 
     unique_cipherwords = [] # this will hold the unique cipherwords from the message
@@ -146,6 +148,7 @@ def hackSimpleSub(message: str):
 
                 break
 
+        # used Gemini for lines 153-155
         #  if we were able to fully decipher the message, then we return the decrypted message using the letter mapping as a string
         if decryption_complete:
 
@@ -155,7 +158,7 @@ def hackSimpleSub(message: str):
 
         for ciphertext_letter in LETTERS:
             
-            previous_mapping[ciphertext_letter] = (letter_mapping[ciphertext_letter].copy()) # copies this letter's list of possible plaintext letters into previous_mapping
+            previous_mapping[ciphertext_letter] = letter_mapping[ciphertext_letter].copy() # copies this letter's list of possible plaintext letters into previous_mapping
 
         for cipherword in unique_cipherwords:
 
@@ -191,11 +194,13 @@ def hackSimpleSub(message: str):
 
                 continue
 
+            # used Gemini for line 198
             word_pattern = re.compile("".join(pattern_parts)) # combines all the parts into a string to use for regex matching. Ex: pattern_parts = ["A", "L", "B", "E", "R", "T", "[A-Z]"] --> ALBERT[A-Z]
             valid_candidates = [] 
 
             for candidate in dictionary_words: # goes through all the words returned by loadDictionary()
 
+                # used Gemini for lines 206-208
                 # if the length of the current word is not the same as the length of the current cipherword or if the current word does not match the regex pattern
                 # then it skips to the next candidate word
                 if len(candidate) != len(cipherword) or word_pattern.fullmatch(candidate) is None:
@@ -227,7 +232,7 @@ def hackSimpleSub(message: str):
 
                 # if the current has no known possible letters, then it just copiess the allowed letters from the candidate mapping into the main mapping
                 if len(current_letters) == 0:
-                    letter_mapping[ciphertext_letter] = (allowed_letters.copy())
+                    letter_mapping[ciphertext_letter] = allowed_letters.copy()
 
                 # if it actually has possible letters, then it checks if any of the current letters are not in the allowed letters from the candidate mapping and removes them from the main mapping
                 else:

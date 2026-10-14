@@ -43,6 +43,9 @@ LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def is_word_valid(cipherword, candidate, letter_mapping):
+    """
+    this function checks if the candidate word is a valid plaintext for the given cipherword based on the current letter mapping
+    """
 
     cipherword = cipherword.upper() # this is the encrypted word that we're checking
     candidate = candidate.upper() # this is a dictionary word that might be its plaintext
@@ -110,12 +113,15 @@ def hackSimpleSub(message: str):
     Then uses regular expressions and a dictionary to decipher additional letters.
     """
 
-    dictionary_words = loadDictionary()
-    letter_mapping = ssh.hackSimpleSub(message)
-    cipherwords = re.findall("[A-Z]+", message.upper())
-    unique_cipherwords = []
+    dictionary_words = loadDictionary() # using the loadDictionary function from detectEnglish.py to get a list of words from the dictionary
+    letter_mapping = ssh.hackSimpleSub(message) # this gets the initial letter mapping from the simpleSubHacker.py 
+    cipherwords = re.findall("[A-Z]+", message.upper()) # gets letters from the message and converts them to uppercase
+
+    unique_cipherwords = [] # this will hold the unique cipherwords from the message
 
     for cipherword in cipherwords:
+
+        # if the current cipherword hasn't been added yet, then it adds it
         if cipherword not in unique_cipherwords:
             unique_cipherwords.append(cipherword)
 
@@ -127,110 +133,116 @@ def hackSimpleSub(message: str):
 
             for ciphertext_letter in cipherword:
 
+                # checks if the current letter has more than one possible mapping (one mapping means deciphered)
+                # if so, it means the letter is not yet fully deciphered
                 if len(letter_mapping[ciphertext_letter]) != 1:
                     decryption_complete = False
 
                     break
 
+            # if empty then it means that the letter has no possible mapping and is also not fully deciphered
             if not decryption_complete:
 
                 break
 
+        #  if we were able to fully decipher the message, then we return the decrypted message using the letter mapping as a string
         if decryption_complete:
 
-            return ssh.decryptWithCipherletterMapping(
-                message,
-                letter_mapping
-            )
+            return ssh.decryptWithCipherletterMapping(message,letter_mapping)
 
-        previous_mapping = {}
+        previous_mapping = {} # this will hold the previous letter mapping to check if the letter mapping has changed after each iterations
 
         for ciphertext_letter in LETTERS:
-            previous_mapping[ciphertext_letter] = (
-                letter_mapping[ciphertext_letter].copy()
-            )
+            
+            previous_mapping[ciphertext_letter] = (letter_mapping[ciphertext_letter].copy()) # this copies all the possibilities list for each letter into the previous mapping dict
 
         for cipherword in unique_cipherwords:
 
-            pattern_parts = []
-            has_undeciphered_letter = False
+            pattern_parts = [] # this will hold parts of the regex pattern for the current cipherword
+            has_undeciphered_letter = False # assumes that the current cipherword has been fully deciphered
 
             for ciphertext_letter in cipherword:
 
-                possible_letters = letter_mapping[ciphertext_letter]
+                possible_letters = letter_mapping[ciphertext_letter] # gets the current list of possible plaintext letters for the current ciphertext letter
 
+                # if there is only one possible letter, it means the ciphertext letter has been fully deciphered
+                # adds the deciphered letter to the pattern_parts list
                 if len(possible_letters) == 1:
                     plaintext_letter = possible_letters[0]
                     pattern_parts.append(plaintext_letter)
 
+                # if there are multiple possible letters, it means the ciphertext letter has not been fully deciphered
+                # combines the possible letters into a pattern for the regex to use
+                # Ex: possible_letters = ["A", "B"] --> pattern_parts = ["[AB]"]
                 elif len(possible_letters) > 1:
-                    pattern_parts.append(
-                        "[" + "".join(possible_letters) + "]"
-                    )
+                    pattern_parts.append("[" + "".join(possible_letters) + "]")
                     has_undeciphered_letter = True
 
+                # if there are no possible letters, it means the ciphertext letter has not been fully deciphered
+                # makes a regex pattern that allows any letter to be matched for the current ciphertext letter
                 else:
                     pattern_parts.append("[A-Z]")
                     has_undeciphered_letter = True
 
+            # if the current cipherword has no undeciphered letters, it means that it has been fully deciphered and we just stop right here and
+            # move on to the next cipherwords
             if not has_undeciphered_letter:
 
                 continue
 
-            word_pattern = re.compile("".join(pattern_parts))
-            valid_candidates = []
+            word_pattern = re.compile("".join(pattern_parts)) # combines all the parts into a string to use for regex matching. Ex: pattern_parts = ["A", "L", "B", "E", "R", "T", "[A-Z]"] --> ALBERT[A-Z]
+            valid_candidates = [] 
 
-            for candidate in dictionary_words:
+            for candidate in dictionary_words: # goes through all the words returned by loadDictionary()
 
-                if len(candidate) != len(cipherword):
-
-                    continue
-
-                if word_pattern.fullmatch(candidate) is None:
+                # if the length of the current word is not the same as the length of the current cipherword or if the current word does not match the regex pattern
+                # then it skips to the next candidate word
+                if len(candidate) != len(cipherword) or word_pattern.fullmatch(candidate) is None:
 
                     continue
 
+                # if the current candidate word is valid based on the current letter mapping (if there's only one possible letter for each ciphertext letter), then it adds it to the valid_candidates list
                 if is_word_valid(cipherword, candidate, letter_mapping):
                     valid_candidates.append(candidate)
 
+            # if no valid candidates were found for the current cipherword, then it skips to the next cipherword
             if len(valid_candidates) == 0:
 
                 continue
 
-            candidate_mapping = ssh.getBlankCipherletterMapping()
+            # this mapping will get all the possible plaintext letters for each ciphertext letter based on the valid candidates found for the current cipherword
+            # Ex: {"A": [], "B": [], etc...} --> the rest of the lists for each letter are also empty 
+            candidate_mapping = ssh.getBlankCipherletterMapping() 
+
 
             for candidate in valid_candidates:
 
-                ssh.addLettersToMapping(
-                    candidate_mapping,
-                    cipherword,
-                    candidate
-                )
+                ssh.addLettersToMapping(candidate_mapping, cipherword, candidate) 
 
             for ciphertext_letter in cipherword:
 
-                allowed_letters = candidate_mapping[ciphertext_letter]
-                current_letters = letter_mapping[ciphertext_letter]
+                allowed_letters = candidate_mapping[ciphertext_letter] # gets all the possible plaintext letters for the current ciphertext letter 
+                current_letters = letter_mapping[ciphertext_letter] # gets the possible plaintext letters already in the main mapping
 
+                # if the current has no known possible letters, then it just copiess the allowed letters from the candidate mapping into the main mapping
                 if len(current_letters) == 0:
-                    letter_mapping[ciphertext_letter] = (
-                        allowed_letters.copy()
-                    )
+                    letter_mapping[ciphertext_letter] = (allowed_letters.copy())
 
+                # if it actually has possible letters, then it checks if any of the current letters are not in the allowed letters from the candidate mapping and removes them from the main mapping
                 else:
-                    remaining_letters = []
+                    remaining_letters = [] # this will hold the letters that should be kept 
 
                     for plaintext_letter in current_letters:
 
+                        # if the current letter is in the allowed letters from the candidate mapping, then it adds it to the remaining_letters list
                         if plaintext_letter in allowed_letters:
                             remaining_letters.append(plaintext_letter)
 
-                    letter_mapping[ciphertext_letter] = remaining_letters
+                    letter_mapping[ciphertext_letter] = remaining_letters # stores the updated list of possible letters for the current ciphertext letter in the main mapping
 
-            letter_mapping = ssh.removeSolvedLettersFromMapping(
-                letter_mapping
-            )
+            letter_mapping = ssh.removeSolvedLettersFromMapping(letter_mapping)  # removes already-solved plaintext letters from other unsolved letters' possible lists
 
+        # checks if the letter mapping has changed after the current iteration, if not it raises an error because it means that the decryption is stuck and can't make any more progress
         if letter_mapping == previous_mapping:
 
             raise ValueError("Stopped before decryption was complete.")
